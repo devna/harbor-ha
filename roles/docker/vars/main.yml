@@ -1,0 +1,4 @@
+---
+
+cert_dir: /data/certs
+data_dir: /data/docker

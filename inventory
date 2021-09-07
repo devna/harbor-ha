@@ -1,0 +1,6 @@
+[harbor]
+main
+standby
+
+[keepalived:children]
+harbor

@@ -1,0 +1,77 @@
+---
+# ref: https://docs.docker.com/engine/install/centos
+
+- name: add docker repository - for docker engine installation
+  yum_repository:
+    name: docker-ce
+    description: Docker CE Stable - $basearch
+    baseurl: https://mirrors.aliyun.com/docker-ce/linux/centos/$releasever/$basearch/stable
+    enabled: 1
+    gpgcheck: 1
+    gpgkey: https://mirrors.aliyun.com/docker-ce/linux/centos/gpg
+
+- name: add epel repository - for docker-compose installation
+  yum_repository:
+    name: epel
+    description: Extra Packages for Enterprise Linux 7 - $basearch
+    baseurl: http://mirrors.aliyun.com/epel/7/$basearch
+    failovermethod: priority
+    enabled: 1
+    gpgcheck: 0
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
+
+- name: uninstall old versions
+  yum: 
+    name: "{{ packages }}"
+    state: absent
+    autoremove: yes
+  vars:
+    packages:
+      - docker
+      - docker-client
+      - docker-client-latest
+      - docker-common
+      - docker-latest
+      - docker-latest-logrotate
+      - docker-logrotate
+      - docker-engine
+
+- name: install docker engine
+  yum:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+  notify:
+    - start docker
+
+- name: create docker config directory
+  ansible.builtin.file:
+    path: "/etc/docker/certs.d/{{ ansible_ssh_host }}"
+    state: directory
+
+- name: configure docker daemon
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+  notify:
+    - restart docker
+
+- name: copy certificates
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: yes
+  with_items:
+    - { src: "{{ cert_dir }}/{{ ansible_ssh_host }}.key", dest: "/etc/docker/certs.d/{{ ansible_ssh_host }}/{{ ansible_ssh_host }}.key" }
+    - { src: "{{ cert_dir }}/{{ ansible_ssh_host }}.crt", dest: "/etc/docker/certs.d/{{ ansible_ssh_host }}/{{ ansible_ssh_host }}.cert" }
+  notify:
+    - restart docker
+
+- name: install docker-compose
+  yum:
+    name: docker-compose
+    state: present

@@ -1,0 +1,24 @@
+---
+
+- name: download harbor package
+  get_url:
+    url: https://github.com/goharbor/harbor/releases/download/v2.3.2/harbor-online-installer-v2.3.2.tgz
+    dest: /opt
+
+- name: unarchive harbor package
+  unarchive:
+    src: /opt/harbor-online-installer-v2.3.2.tgz
+    dest: /opt
+    remote_src: yes
+
+- name: generate harbor config file
+  template:
+    src: harbor.yml.j2
+    dest: /opt/harbor/harbor.yml
+
+- name: install harbor
+  ansible.builtin.command: ./install.sh
+  args:
+    chdir: /opt/harbor/
+  notify:
+    - start harbor
